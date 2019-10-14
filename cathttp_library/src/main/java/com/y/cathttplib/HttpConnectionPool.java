@@ -1,7 +1,5 @@
 package com.y.cathttplib;
 
-import android.util.Log;
-
 import com.y.cathttplib.util.L;
 
 import java.util.ArrayDeque;
@@ -43,7 +41,7 @@ public class HttpConnectionPool {
         this.keepAliveDuration = timeUnit.toMillis(keepAliveDuration);
     }
 
-    private static final Executor executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
+    private static final Executor executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 10, TimeUnit.SECONDS,
             new SynchronousQueue<Runnable>(), new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
@@ -58,16 +56,21 @@ public class HttpConnectionPool {
     private Runnable cleanRunnable = new Runnable() {
         @Override
         public void run() {
-            long waitTime = clean();
-            if (waitTime <= 0) {
-                return;
-            }
-            synchronized (HttpConnectionPool.this) {
-                try {
-                    //调用某个对象的wait()方法能让当前线程阻塞，
-                    // 并且当前线程必须拥有此对象的monitor（即锁）
-                    HttpConnectionPool.this.wait(waitTime);
-                } catch (InterruptedException ignored) {}
+            while (true) {
+                long waitTime = clean();
+                L.e("waitTime = " + waitTime);
+                if (waitTime <= 0) {
+                    return;
+                }
+                synchronized (HttpConnectionPool.this) {
+                    try {
+                        //调用某个对象的wait()方法能让当前线程阻塞，
+                        // 并且当前线程必须拥有此对象的monitor（即锁）
+                        HttpConnectionPool.this.wait(waitTime);
+                    } catch (InterruptedException e) {
+                        L.e(e.toString());
+                    }
+                }
             }
         }
     };
@@ -111,7 +114,7 @@ public class HttpConnectionPool {
                 if (idleDuration > keepAliveDuration) {
                     connection.closeQuietly();
                     i.remove();
-                    Log.e("Pool", "移出连接池");
+                    L.e("HttpConnectionPool:移出连接池");
                     continue;
                 }
                 //获得最大闲置时间
