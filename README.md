@@ -2,8 +2,6 @@
 
 记录下异步请求实现思路,
 
-[GitHub代码地址](https://github.com/vpractical/CatHttp)
-
 # 使用
 * 创建CatHttpClient对象
 * 创建Request对象
